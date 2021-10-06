@@ -20,8 +20,8 @@
             const CAR_WIDTH = 30;
             const DELTA_TIME = 20.0 / 1000;
             const SWITCH_MIN_TIME = 2.0; // seconds
-            const TOTAL_LANES = 3;
-            const NUMBER_OF_CARS = 50;
+            const TOTAL_LANES = 6;
+            const NUMBER_OF_CARS = 100;
 
             var canvas = document.getElementById("can");
 
@@ -43,7 +43,7 @@
                     this.speed = 200;
                     this.followDistance = 100 + (Math.random() * 50);
                     this.switchClock = 0;
-                    var colors = ["red","blue","green","yellow", "white", "black"];
+                    var colors = ["red","blue","green","maroon", "white", "black", "navy", "beige", "orange"];
 
                     this.color = colors[Math.floor(Math.random() * colors.length)];
                 }
@@ -177,7 +177,8 @@
             setInterval(function(){
 
                 //Clear
-                ctx.clearRect(0,0,canvas.width,canvas.height)
+                ctx.fillStyle = "black";
+                ctx.fillRect(0,0,canvas.width,canvas.height)
 
                 //Update loop
                 for (let i = 0; i < cars.length; i++) {
