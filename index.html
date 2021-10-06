@@ -77,7 +77,7 @@
                     }
 
                     //Crash prevention
-                    if(currentFollowDistance !== 0 && currentFollowDistance < 10){
+                    if(currentFollowDistance !== 0 && currentFollowDistance < this.length + 10){
                         this.speed = 0;
                     }
                     //Ensure can't go backwards
@@ -94,7 +94,7 @@
                     }
 
                     //Check for right lane switch
-                    if(this.lane.number != lanes.length - 1 && this.speed < this.desiredSpeed && this.switchClock <= 0){
+                    if(this.lane.number != lanes.length - 1 && this.switchClock <= 0){
                         if( lanes[this.lane.number + 1].isCarInRange(this.backX - LOOKING_BACK, LOOKING_BACK + 10 + this.followDistance + this.length) === 0  ){
                             this.switchLanes(this.lane.number + 1);
                             this.switchClock = SWITCH_MIN_TIME + Math.random() * 2;
@@ -138,16 +138,7 @@
 
                 draw(ctx) {
                     ctx.fillStyle = "gray";
-                    ctx.fillRect(0, this.y, canvas.width, LANE_WIDTH);
-
-                    ctx.strokeStyle = 'yellow';
-                    ctx.lineWidth = 2;
-                    ctx.moveTo(0, this.y);
-                    ctx.lineTo(canvas.width, this.y);
-                    ctx.stroke();
-                    ctx.moveTo(0, this.y + this.width);
-                    ctx.lineTo(canvas.width, this.y + this.width);
-                    ctx.stroke();
+                    ctx.fillRect(0, this.y, canvas.width + 1, LANE_WIDTH - 1);
                 }
 
                 addCar(car) {
@@ -200,7 +191,6 @@
                 for (let i = 0; i < cars.length; i++) {
                     cars[i].draw(ctx);              
                 }
-                
 
             },DELTA_TIME * 1000);
 
