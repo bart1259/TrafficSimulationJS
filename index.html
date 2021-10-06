@@ -1,0 +1,209 @@
+<html>
+    <head>
+    </head>
+
+    <body>
+        <canvas id="can" width="1900" height="1080"></canvas>
+        <style>
+            * {
+                margin: 0;
+                border: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+
+        <script>
+
+            const LANE_WIDTH = 50;
+            const CAR_WIDTH = 30;
+            const DELTA_TIME = 20.0 / 1000;
+            const SWITCH_MIN_TIME = 2.0; // seconds
+            const TOTAL_LANES = 3;
+            const NUMBER_OF_CARS = 50;
+
+            var canvas = document.getElementById("can");
+
+            function drawRect(x, y, w, h) {
+                ctx.beginPath();
+                ctx.lineWidth = "6";
+                ctx.strokeStyle = "red";
+            }
+
+            class Car {
+                constructor(xPos, lane) {
+                    this.backX = xPos;
+                    this.y = lane.y + (LANE_WIDTH / 2) - (CAR_WIDTH / 2);
+                    this.targetY = this.y;
+                    this.lane = lane;
+                    this.lane.addCar(this);
+                    this.length = 35 + (Math.random() * 20);
+                    this.desiredSpeed = (250 - (Math.random() * 100))
+                    this.speed = 200;
+                    this.followDistance = 100 + (Math.random() * 50);
+                    this.switchClock = 0;
+                    var colors = ["red","blue","green","yellow", "white", "black"];
+
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+
+                draw(ctx) {
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(this.backX, this.y, this.length, CAR_WIDTH);
+
+                }
+
+                update() {
+
+                    let currentFollowDistance = this.lane.isCarInRange(this.backX + this.length, this.followDistance);
+
+                    //Swerve into correct lane
+                    if(this.y < this.targetY){
+                        this.y++;
+                    }
+                    if(this.y > this.targetY){
+                        this.y--;
+                    }
+
+                    //If nobody is infront, speed up
+                    if(currentFollowDistance === 0){
+                        if(this.speed < this.desiredSpeed){
+                            this.speed += 5;
+                        }
+                    } else {
+                        //If there is somoene then slow down
+                        this.speed -= 3;
+                    }
+
+                    //Crash prevention
+                    if(currentFollowDistance !== 0 && currentFollowDistance < 10){
+                        this.speed = 0;
+                    }
+                    //Ensure can't go backwards
+                    this.speed = Math.max(this.speed, 0)
+
+                    const LOOKING_BACK = this.followDistance;
+
+                    //Check for left lane switch
+                    if(this.lane.number != 0 && this.speed < this.desiredSpeed && this.switchClock <= 0){
+                        if( lanes[this.lane.number - 1].isCarInRange(this.backX - LOOKING_BACK, LOOKING_BACK + 10 + this.followDistance + this.length) === 0){
+                            this.switchLanes(this.lane.number - 1);
+                            this.switchClock = SWITCH_MIN_TIME + Math.random() * 2;
+                        }
+                    }
+
+                    //Check for right lane switch
+                    if(this.lane.number != lanes.length - 1 && this.speed < this.desiredSpeed && this.switchClock <= 0){
+                        if( lanes[this.lane.number + 1].isCarInRange(this.backX - LOOKING_BACK, LOOKING_BACK + 10 + this.followDistance + this.length) === 0  ){
+                            this.switchLanes(this.lane.number + 1);
+                            this.switchClock = SWITCH_MIN_TIME + Math.random() * 2;
+                        }
+                    }
+
+                    //Check out of world
+                    if(this.backX > canvas.width + 200){
+                        this.removeCar();
+                    }
+
+                    this.switchClock -= DELTA_TIME;
+                    this.backX += this.speed * DELTA_TIME;
+                }
+
+                switchLanes(newNumber) {
+                    this.lane.cars.splice( this.lane.cars.indexOf(this), 1);
+                    lanes[newNumber].addCar(this);
+                    this.lane = lanes[newNumber];
+
+                    this.targetY = this.lane.y + (LANE_WIDTH / 2) - (CAR_WIDTH / 2)
+                }
+
+                removeCar() {
+                    //Move car back behind last car in lane
+                    this.backX = Math.min(this.lane.cars.reduce((min, p) => p.backX < min ? p.backX : min, this.lane.cars[0].backX) - 200, -this.length);
+                }
+            }
+
+            class Lane {
+                constructor(number, total){
+    	            this.number = number;
+      	            this.total = total;
+                    this.width = LANE_WIDTH;
+                    this.cars = [];
+
+                    let halfTotalWidth = total * LANE_WIDTH / 2;
+
+                    this.y = (this.width * number) + ((canvas.height / 2) - halfTotalWidth);
+                }
+
+                draw(ctx) {
+                    ctx.fillStyle = "gray";
+                    ctx.fillRect(0, this.y, canvas.width, LANE_WIDTH);
+
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(0, this.y);
+                    ctx.lineTo(canvas.width, this.y);
+                    ctx.stroke();
+                    ctx.moveTo(0, this.y + this.width);
+                    ctx.lineTo(canvas.width, this.y + this.width);
+                    ctx.stroke();
+                }
+
+                addCar(car) {
+                    this.cars.push(car)
+                }
+
+                // Returns how close the car is or 0 if there is none
+                isCarInRange(backX, range) {
+                    let lowerLimit = backX;
+                    let upperLimit = backX + range;
+                    let inRange = this.cars.filter((car) => car.backX > lowerLimit && car.backX < upperLimit);
+                    if(inRange.length === 0){
+                        return 0;
+                    }
+                    let closestCar = inRange.reduce((a,b) => Math.min(a.backX, b.backX));
+                    return closestCar.backX - lowerLimit;
+                }
+            }
+
+            var c = document.getElementById("can");
+            var ctx = c.getContext("2d");
+            ctx.moveTo(0, 0);
+
+            let lanes = []
+
+            for (let i = 0; i < TOTAL_LANES; i++) {
+                lanes.push(new Lane(i, TOTAL_LANES));
+            }
+
+            //Gen cars
+            let cars = [];
+            for (let i = 0; i < NUMBER_OF_CARS; i++) {
+                cars.push(new Car((-100 * i), lanes[TOTAL_LANES - 1]))
+            }
+
+            setInterval(function(){
+
+                //Clear
+                ctx.clearRect(0,0,canvas.width,canvas.height)
+
+                //Update loop
+                for (let i = 0; i < cars.length; i++) {
+                    cars[i].update();              
+                }
+
+                //Draw
+                for (let i = 0; i < lanes.length; i++) {
+                    lanes[i].draw(ctx);                
+                }
+                for (let i = 0; i < cars.length; i++) {
+                    cars[i].draw(ctx);              
+                }
+                
+
+            },DELTA_TIME * 1000);
+
+        </script>
+    </body>
+</html>
